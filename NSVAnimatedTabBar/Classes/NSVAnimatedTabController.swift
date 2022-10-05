@@ -7,6 +7,7 @@
 
 import UIKit
 
+
 public class NSVAnimatedTabController: UIViewController {
 
     private let animatedTab = AnimatedTab(frame: .zero)
@@ -17,16 +18,19 @@ public class NSVAnimatedTabController: UIViewController {
     private lazy var centerItem = AnimatedTabItem(frame: .zero)
     private var options: NSVAnimatedTabOptions?
     private var subOptionItems: [CenterItemSubOptionItem] = []
+    let didTapMiddleNotification = Notification.Name("DidTapMiddle")
+    
+
     private var isOpen = false {
         didSet {
             if delegate?.shouldOpenSubOptions() ?? true  {
                 handleCenterItemTap()
                 if isOpen {
                     addConverView()
-                    centerItem.select(color: options?.selectedItemColor ?? .clear)
+//                    centerItem.select(color: options?.selectedItemColor ?? .clear)
                 } else {
                     removeConverView()
-                    centerItem.unselect(color: options?.unselectedItemColor ?? .clear)
+//                    centerItem.unselect(color: options?.unselectedItemColor ?? .clear)
                 }
             }
         }
@@ -76,17 +80,21 @@ public class NSVAnimatedTabController: UIViewController {
     private func addConverView() {
         converView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(covertViewTapped)))
         converView.translatesAutoresizingMaskIntoConstraints = false
-        converView.backgroundColor = .black
         view.insertSubview(converView, aboveSubview: containerView)
+        let margins = view.layoutMarginsGuide
+        converView.topAnchor.constraint(equalTo: margins.topAnchor, constant: -50).isActive = true
+        converView.bottomAnchor.constraint(equalTo: margins.bottomAnchor, constant: 0).isActive = true
         converView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
-        converView.heightAnchor.constraint(equalTo: view.heightAnchor).isActive = true
         converView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         converView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        converView.backgroundColor = .black
+        NotificationCenter.default.post(name: didTapMiddleNotification  , object: nil)
     }
 
     private func removeConverView() {
         converView.alpha = 0
         converView.removeFromSuperview()
+        NotificationCenter.default.post(name: didTapMiddleNotification  , object: nil)
     }
 
     private func addConstraints(options: NSVAnimatedTabOptions) {
@@ -106,7 +114,7 @@ public class NSVAnimatedTabController: UIViewController {
         tabBottomConstraint = _bottomView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -options.tabInsets.bottom)
         tabBottomConstraint?.isActive = true
         _bottomView.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -options.tabInsets.right).isActive = true
-        _bottomView.backgroundColor = options.tabBackgroundColor
+        _bottomView.backgroundColor = .white
     }
 
     private func configureTab(options: NSVAnimatedTabOptions) {
@@ -123,7 +131,7 @@ public class NSVAnimatedTabController: UIViewController {
         centerItemBottomConstraint?.isActive = true
         centerItem.configure(with: options.options, animationType: self.options?.animationOptions.tabSelectionAnimationType ?? .none)
         addCenterItemSubOptions(options: options)
-        centerItem.backgroundColor = options.backgroundColor
+        centerItem.backgroundColor = .white
         centerItem.set(cornerRadius: options.cornerRadius, shadowInfo: options.shadowInfo)
         centerItem.onTap = { [weak self] in
             self?.isOpen.toggle()
@@ -280,6 +288,7 @@ public class NSVAnimatedTabController: UIViewController {
         }
     }
 
+   
     private func select(at index: Int) {
         if index == selectedIndex {
             return
@@ -303,31 +312,13 @@ public class NSVAnimatedTabController: UIViewController {
                     self.view.backgroundColor = selectedController.view.backgroundColor
                 }, completion:nil)
             } else {
-                view.backgroundColor = selectedController.view.backgroundColor
             }
         }
     }
 
     private func animateMainViews() {
-        guard let mainOptions = options else {
-            return
-        }
-        if let tabMove = mainOptions.animationOptions.tabMovePercentage {
-            if !isOpen {
-                tabBottomConstraint?.constant = -mainOptions.tabInsets.bottom
-            } else {
-                tabBottomConstraint?.constant = view.bottomPadding + (animatedTab.frame.height*tabMove)
-            }
-        }
-        if let centerItemMove = mainOptions.animationOptions.centerItemMovePercentage {
-            if !isOpen {
-                centerItemBottomConstraint?.constant = -mainOptions.centerItemOptions.insets.bottom-mainOptions.tabInsets.bottom
-            } else {
-                centerItemBottomConstraint?.constant = -(mainOptions.centerItemOptions.insets.bottom + (mainOptions.centerItemOptions.size.height*centerItemMove))
-            }
-        }
         if isOpen {
-            converView.alpha = options?.coverAlpha ?? 0
+            converView.alpha = 0.8
         }
     }
 
@@ -339,7 +330,7 @@ public class NSVAnimatedTabController: UIViewController {
                 if self.isOpen {
                     if index + 1 >= self.subOptionItems.count {
                         onFinish()
-                    } 
+                    }
                 } else {
                     if index - 1 < 0 {
                         onFinish()
